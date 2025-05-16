@@ -1,0 +1,793 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PIXkit3.0 ダッシュボード</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.4.1/socket.io.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gauge.js/1.3.7/gauge.min.js"></script>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #1e1e1e;
+            color: #f0f0f0;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+        }
+        .dashboard {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 40px;
+            height: 100vh;
+        }
+        .dashboard-header {
+            text-align: center;
+            margin-top: 20px;
+            margin-bottom: 50px;
+            justify-content: space-around;
+            width: 100%;
+        }
+        .info-button {
+            position: absolute;
+            top: 180px;
+            left: 140px;
+            padding: 15px 15px;
+            background-color: #444;
+            color: white;
+            font-size: 28px;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+        }
+        .speed_limit {
+            position: absolute;
+            top: 170px;
+            left: 31.5%;
+            width: 120px;
+            height: 120px;
+            font-size: 3em;
+            background-color: #fff;
+            border-radius: 50%;
+            color: black;
+        }
+        .limit_ring {
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            margin: auto;
+            width: 96px;
+            height: 96px;
+            border-radius: 50%;
+            border: 10px solid red;
+        }
+        .speed_limit_value {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            margin: auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2em;
+        }
+        #realtime {
+            font-size: 50px;
+        }
+        #connection-status {
+            font-size: 28px;
+            margin-top: 10px;
+            color: #666;
+        }
+        .battery {
+            position: absolute;
+            top: 170px;
+            left: 63%;
+        }
+        .battery_chart {
+            position: absolute;
+            top: 0;
+            left: 0;
+            justify-content: center;
+            align-items: center;
+            width: 120px;
+            height: 120px;
+            margin: 0;
+            border-radius: 50%;
+            background-image: radial-gradient(#1e1e1e 55%, transparent 55%), conic-gradient(#61fc0e 0%, #f2f2f2 0% 100%);
+            font-weight: 600;
+        }
+        .battery_value {
+            position: absolute;
+            top: 60px;
+            left: 60px;
+            width: 100%;
+            height: 100%;
+            margin: auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.4em;
+        }
+        .battery_value span {
+            font-size: 0.7em;
+        }
+        .dashboard-content {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-around;  
+            width: 100%;
+        }
+        .gauge-container {
+            text-align: center;
+            margin: 10px;
+            width: 500px;
+            height: 500px;
+            padding-top: 15px;
+            align-items: center;
+            border: 4px solid #747474;
+            border-radius: 50%;
+            box-shadow: 0 0 15px rgba(255, 255, 255, 0.2);
+        }
+        .gauge-title {
+            font-size: 2.5em;
+            margin-top: 50px;
+        }
+        .gauge-value {
+            font-size: 3em;
+            margin-top: 20px;
+        }
+        .vehicle {
+            position: relative;
+            width: 275px;
+            margin: 30px auto;
+        }
+        .car-body {
+            width: 100%;
+            height: auto;
+        }
+        .tire {
+            position: absolute;
+            width: 60px;
+            height: 60px;
+            transform-origin: center center;
+        }
+        .front-left  { top: 35px;  left: 57px; }
+        .front-right { top: 35px;  right: 57px; }
+        .rear-left   { bottom: 30px;  left: 57px; }
+        .rear-right  { bottom: 30px;  right: 57px; }
+        .tire_angle {
+            position: absolute;
+            transform-origin: center center;
+            font-size: 2.5em;
+        }
+        #tire_angle_fl { top: 5px; left: -30px; }
+        #tire_angle_fr { top: 5px; right: -30px; }
+        #tire_angle_rl { bottom: -4px; left: -30px; }
+        #tire_angle_rr { bottom: -4px; right: -30px; }
+        .visible {
+            opacity: 1;
+            display: block;
+            pointer-events: auto;
+        }
+        .hidden {
+            opacity: 0;
+            display: none;
+            pointer-events: none;
+        }
+        #steer-mode-img {
+            width: 500px;
+            height: 515px;
+            margin-top: -15px;
+            border-radius: 50%;
+        }
+        #rear-camera-feed {
+            width: 500px;
+            height: 515px;
+            margin-top: -15px;
+            border-radius: 50%;
+        }
+        #speed-gauge {
+            width: 450px;
+            height: auto;
+        }
+        #throttle-gauge {
+            width: 450px;
+            height: auto;
+        }
+        .indicators {
+            display: flex;
+            justify-content: space-around;
+            width: 100%;
+            margin-top: 80px;
+        }
+        .indicator {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 0 20px;
+        }
+        .indicator-light {
+            width: 100px;
+            height: 100px;
+            margin-bottom: 20px;
+        }
+        .left-turn {
+            background-color: #333;
+        }
+        .right-turn {
+            background-color: #333;
+        }
+        .headlight {
+            background-color: #333;
+        }
+        .active {
+            animation: blink 1s infinite;
+        }
+        .gear-display {
+            font-size: 3em;
+            font-weight: bold;
+            padding: 40px;
+            width: 160px;
+            height: 160px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border-radius: 50%;
+            background-color: #333;
+            color: #fff;
+        }
+        .gear-active {
+            background-color: #1e88e5;
+        }
+        @keyframes blink {
+            0% { opacity: 1; }
+            50% { opacity: 0.3; }
+            100% { opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard">
+        <div class="dashboard-header">
+            <button id="info-toggle" class="info-button">INFO</button>
+            <div id="speed_limit" class="speed_limit">
+                <div class="limit_ring">
+                    <h3 id="speed_limit_value" class="speed_limit_value">30</h3>
+                </div>
+            </div>
+            <h1 id="realtime"></h1>
+            <div id="connection-status">Connectiong...</div>
+            <div class="battery">
+                <div id="battery" class="battery_chart"></div>
+                <h3 id="battery_value" class="battery_value">0<span>%</span></h3>
+            </div>
+        </div>
+        <div class="dashboard-content">
+            <div class="gauge-container visible" id="steering-angle-panel">
+                <h2 class="gauge-title">WHEELS</h2>
+                <div class="vehicle">
+                    <img src="/static/{{'car_top.png'}}" class="car-body">
+                    <img src="/static/{{'tire.png'}}" class="tire front-left" id="tire-fl">
+                    <p class="tire_angle" id="tire_angle_fl">0.0°</p>
+                    <img src="/static/{{'tire.png'}}" class="tire front-right" id="tire-fr">
+                    <p class="tire_angle" id="tire_angle_fr">0.0°</p>
+                    <img src="/static/{{'tire.png'}}" class="tire rear-left" id="tire-rl">
+                    <p class="tire_angle" id="tire_angle_rl">0.0°</p>
+                    <img src="/static/{{'tire.png'}}" class="tire rear-right" id="tire-rr">
+                    <p class="tire_angle" id="tire_angle_rr">0.0°</p>
+                </div>
+            </div>
+            <div class="gauge-container hidden" id="steer-mode-panel">
+                <img id="steer-mode-img" src="/static/{{'ackerman.png'}}">
+            </div>
+            <div class="gauge-container hidden" id="reverse-panel">
+                <img id="rear-camera-feed" src="/static/{{'saku.png'}}">
+            </div>
+            
+            <div class="gauge-container">
+                <h2 class="gauge-title">SPEED</h2>
+                <canvas id="speed-gauge"></canvas>
+                <div class="gauge-value" id="speed-value">0.0 km/h</div>
+            </div>
+            
+            <div class="gauge-container">
+                <h2 class="gauge-title">ACCELERATOR</h2>
+                <canvas id="throttle-gauge"></canvas>
+                <div class="gauge-value" id="throttle-value">0.0 %</div>
+            </div>
+        </div>
+        
+        <div class="indicators">
+            <div class="indicator">
+                <img id="headlight" class="indicator-light" src="/static/{{'light_off.png'}}" alt="ヘッドライト">
+            </div>
+            <div class="indicator">
+                <img id="parking" class="indicator-light" src="/static/{{'parking.png'}}" alt="パーキング">
+            </div>
+            <div class="indicator">
+                <img id="left-turn" class="indicator-light" src="/static/{{'left_off.png'}}" alt="左ウインカー">
+            </div>
+            <div class="indicator">
+                <img id="gear-icon" class="indicator-light" src="/static/{{'n.png'}}" alt="ギア表示">
+            </div>
+            <div class="indicator">
+                <img id="right-turn" class="indicator-light" src="/static/{{'right_off.png'}}" alt="右ウインカー">
+            </div>
+            <div class="indicator">
+                <img id="control" class="indicator-light" src="/static/{{'handle.png'}}" alt="コントロール">
+            </div>
+            <div class="indicator">
+                <img id="emargency" class="indicator-light" src="/static/{{'clear.png'}}" alt="緊急停止">
+            </div>
+        </div>        
+    </div>
+
+    <script>
+        var socket = io.connect(window.location.origin, {
+            reconnection: true,
+            reconnectionAttempts: 5,
+            reconnectionDelay: 1000
+        });
+        
+        const connectionStatus = document.getElementById('connection-status');
+
+        function twoDigit(num) {
+            let ret;
+            if( num < 10 ) 
+                ret = "0" + num; 
+            else 
+                ret = num; 
+            return ret;
+        }
+
+        function showClock() {
+            let nowTime = new Date();
+            let nowHour = twoDigit( nowTime.getHours() );
+            let nowMin  = twoDigit( nowTime.getMinutes() );
+            let nowSec  = twoDigit( nowTime.getSeconds() );
+            let msg = nowHour + ":" + nowMin;
+            document.getElementById("realtime").innerHTML = msg;
+        }
+
+        setInterval('showClock()',1000);
+        
+        console.log("Attempting WebSocket connection...");
+
+        let speedGauge;
+        let throttleGauge;
+
+        let prev_gear = 'N';
+        let prev_speed = 0.0;
+        let prev_throttle = 0.0;
+        let prev_parking = false;
+        let prev_control = 'handle';
+        let prev_limit = 30;
+        let prev_emargency = false;
+        let prev_battery = 0;
+        let prev_headlight = false;
+        let prev_left_turn_signal = false;
+        let prev_right_turn_signal = false;
+        let prev_hazard_signal = false;
+        let prev_tire_angle_fl = 0.0;
+        let prev_tire_angle_fr = 0.0;
+        let prev_tire_angle_rl = 0.0;
+        let prev_tire_angle_rr = 0.0;
+        let prev_steer_mode = 'ackerman';
+
+        let info = 0;
+        let last_info = 0;
+
+        // ゲージ初期化
+        speedGauge = new Gauge(document.getElementById('speed-gauge')).setOptions({
+            angle: 0,
+            lineWidth: 0.44,
+            radiusScale: 1,
+            pointer: {
+                length: 0.6,
+                strokeWidth: 0.035,
+                color: '#fff'
+            },
+            limitMax: false,
+            limitMin: false,
+            colorStart: '#6fadcf',
+            colorStop: '#8fc0da',
+            strokeColor: '#e0e0e0',
+            generateGradient: true,
+            highDpiSupport: true,
+            renderTicks: {
+                divisions: 6,
+                divWidth: 1.1,
+                divLength: 0.7,
+                divColor: '#333333',
+                subDivisions: 2,
+                subLength: 0.5,
+                subWidth: 0.6,
+                subColor: '#666666'
+            },
+            staticLabels: {
+                font: "20px sans-serif",
+                labels: [0, 20, 40, 60, 80, 100, 120],
+                color: "#fff",
+                fractionDigits: 0
+            }
+        });
+        speedGauge.maxValue = 120;
+        speedGauge.setMinValue(0);
+        speedGauge.animationSpeed = 32;
+        speedGauge.set(0);
+
+        throttleGauge = new Gauge(document.getElementById('throttle-gauge')).setOptions({
+            angle: 0,
+            lineWidth: 0.44,
+            radiusScale: 1,
+            pointer: {
+                length: 0.6,
+                strokeWidth: 0.035,
+                color: '#fff'
+            },
+            limitMax: false,
+            limitMin: false,
+            colorStart: '#6fadcf',
+            colorStop: '#8fc0da',
+            strokeColor: '#e0e0e0',
+            generateGradient: true,
+            highDpiSupport: true,
+            renderTicks: {
+                divisions: 5,
+                divWidth: 1.1,
+                divLength: 0.7,
+                divColor: '#333333',
+                subDivisions: 2,
+                subLength: 0.5,
+                subWidth: 0.6,
+                subColor: '#666666'
+            },
+            staticLabels: {
+                font: "20px sans-serif",
+                labels: [0, 20, 40, 60, 80, 100],
+                color: "#fff",
+                fractionDigits: 0
+            }
+        });
+        throttleGauge.maxValue = 100;
+        throttleGauge.setMinValue(0);
+        throttleGauge.animationSpeed = 32;
+        throttleGauge.set(0);
+        
+        // ウィンカー・ヘッドライト等のステータス更新
+        function updateTurnSignals(data) {
+            const leftTurn = document.getElementById('left-turn');
+            const rightTurn = document.getElementById('right-turn');
+            const headlight = document.getElementById('headlight');
+            const parking = document.getElementById('parking');
+            const emargency = document.getElementById('emargency');
+
+            if (data.hazard_signal != prev_hazard_signal) {
+                leftTurn.src = data.left_turn_signal ? "/static/{{'left_on.gif'}}" : "/static/{{'left_off.png'}}";
+                rightTurn.src = data.right_turn_signal ? "/static/{{'right_on.gif'}}" : "/static/{{'right_off.png'}}";
+                prev_hazard_signal = data.hazard_signal;
+            }
+            if (data.left_turn_signal != prev_left_turn_signal) {
+                leftTurn.src = data.left_turn_signal ? "/static/{{'left_on.gif'}}" : "/static/{{'left_off.png'}}";
+                prev_left_turn_signal = data.left_turn_signal;
+            }
+            if (data.right_turn_signal != prev_right_turn_signal) {
+                rightTurn.src = data.right_turn_signal ? "/static/{{'right_on.gif'}}" : "/static/{{'right_off.png'}}";
+                prev_right_turn_signal = data.right_turn_signal;
+            }
+            if (data.headlight != prev_headlight) {
+                headlight.src = data.headlight ? "/static/{{'light_on.png'}}" : "/static/{{'light_off.png'}}";
+                prev_headlight = data.headlight;
+            }
+            if (data.parking != prev_parking) {
+                parking.src = data.parking ? "/static/{{'parking.png'}}" : "/static/{{'clear.png'}}";
+                prev_parking = data.parking;
+            }
+            if (data.emargency != prev_emargency) {
+                emargency.src = data.emargency ? "/static/{{'emargency.png'}}" : "/static/{{'clear.png'}}";
+                prev_emargency = data.emargency;
+            }
+        }
+
+        // ギア表示の更新
+        function updateGear(gear) {
+            const gearIcon = document.getElementById('gear-icon');
+            if (gear != prev_gear) {
+                if (prev_gear == 'R') {
+                    info = last_info;
+                    changeInfo();
+                }
+                switch (gear) {
+                    case 'D':
+                        gearIcon.src = "/static/{{'d.png'}}";
+                        break;
+                    case 'N':
+                        gearIcon.src = "/static/{{'n.png'}}";
+                        break;
+                    case 'R':
+                        gearIcon.src = "/static/{{'r.png'}}";
+                        last_info = info;
+                        info = 2;
+                        changeInfo();
+                        break;
+                    default:
+                        gearIcon.src = "/static/{{'n.png'}}";
+                }
+                prev_gear = gear;
+            }
+        }
+
+        // コントロール方式の更新
+        function updateControl(control) {
+            const controlIcon = document.getElementById('control');
+            if (control != prev_control) {
+                switch (control) {
+                    case 'nobody':
+                        controlIcon.src = "/static/{{'clear.png'}}";
+                        break;
+                    case 'auto':
+                        controlIcon.src = "/static/{{'autonomous.png'}}";
+                        break;
+                    case 'rc':
+                        controlIcon.src = "/static/{{'rc.png'}}";
+                        break;
+                    case 'handle':
+                        controlIcon.src = "/static/{{'handle.png'}}";
+                        break;
+                    default:
+                        controlIcon.src = "/static/{{'clear.png'}}";
+                }
+                prev_control = control;
+            }
+        }
+
+        // バッテリー残量の更新
+        function updateBattery(percent) {
+            percent = Math.max(0, Math.min(100, percent));
+            const el = document.getElementById('battery');
+            if (percent != prev_battery) {
+                let color = percent < 20 ? '#ff0000' : percent < 50 ? '#ffaa00' : '#61fc0e';
+                el.style.backgroundImage = `
+                    radial-gradient(#1e1e1e 55%, transparent 55%),
+                    conic-gradient(${color} ${percent}%, #f2f2f2 ${percent}% 100%)
+                `;
+                document.getElementById('battery_value').innerHTML = percent + '<span>%</span>';
+                prev_battery = percent;
+            }
+        }
+
+        // タイヤ角の更新
+        function updateTireAngles(data) {
+            if (data.tire_angle_fl != prev_tire_angle_fl) {
+                document.getElementById('tire-fl').style.transform = `rotate(${data.tire_angle_fl}deg)`;
+                document.getElementById('tire_angle_fl').textContent = `${data.tire_angle_fl.toFixed(1)}°`
+                prev_tire_angle_fl = data.tire_angle_fl;
+            }
+            if (data.tire_angle_fr != prev_tire_angle_fr) {
+                document.getElementById('tire-fr').style.transform = `rotate(${data.tire_angle_fr}deg)`;
+                document.getElementById('tire_angle_fr').textContent = `${data.tire_angle_fr.toFixed(1)}°`
+                prev_tire_angle_fr = data.tire_angle_fr;
+            }
+            if (data.tire_angle_rl != prev_tire_angle_rl) {
+                document.getElementById('tire-rl').style.transform = `rotate(${data.tire_angle_rl}deg)`;
+                document.getElementById('tire_angle_rl').textContent = `${data.tire_angle_rl.toFixed(1)}°`
+                prev_tire_angle_rl = data.tire_angle_rl;
+            }
+            if (data.tire_angle_rr != prev_tire_angle_rr) {
+                document.getElementById('tire-rr').style.transform = `rotate(${data.tire_angle_rr}deg)`;
+                document.getElementById('tire_angle_rr').textContent = `${data.tire_angle_rr.toFixed(1)}°`
+                prev_tire_angle_rr = data.tire_angle_rr;
+            }
+        }
+        
+        // ステアリングモードの更新
+        function updateSteerMode(mode) {
+            const modeImg = document.getElementById('steer-mode-img');
+            if (mode != prev_steer_mode) {
+                switch (mode) {
+                    case 'ackerman':
+                        modeImg.src = "/static/{{'ackerman.png'}}";
+                        break;
+                    case 'parallel':
+                        modeImg.src = "/static/{{'parallel.png'}}";
+                        break;
+                    case 'counter':
+                        modeImg.src = "/static/{{'counter.png'}}";
+                        break;
+                    default:
+                        modeImg.src = "/static/{{'ackerman.png'}}";
+                }
+                prev_steer_mode = mode;
+            }
+        }
+
+        
+        // サーバーからのポーリングを開始するために明示的にリクエスト
+        function requestUpdate() {
+            socket.emit('request_update');
+        }
+        
+        // 定期的に更新をリクエスト
+        setInterval(requestUpdate, 30);
+
+        let abs_speed;
+        
+        // データ受信イベント
+        socket.on('vehicle_data', function(data) {
+            console.log('Received vehicle data:', data);
+            requestAnimationFrame(() => {
+                updateDashboard(data);
+            });
+        });
+
+        function updateDashboard(data) {
+            // 速度の更新
+            abs_speed = Math.abs(data.speed);
+            if (abs_speed != prev_speed) {
+                speedGauge.set(abs_speed);
+                document.getElementById('speed-value').textContent = abs_speed.toFixed(1) + ' km/h';
+                prev_speed = abs_speed;
+            }
+            
+            // アクセル開度の更新
+            data.throttle = Math.max(0, Math.min(100, data.throttle));
+            if (data.throttle != prev_throttle) {
+                throttleGauge.set(data.throttle);
+                if (data.throttle > 90) {
+                    throttleGauge.options.colorStart = '#b52bff';
+                    throttleGauge.options.colorStop = '#c966ff';
+                } else if (data.throttle > 55) {
+                    throttleGauge.options.colorStart = '#ff3333';
+                    throttleGauge.options.colorStop = '#ff6666';
+                } else {
+                    throttleGauge.options.colorStart = '#6fadcf';
+                    throttleGauge.options.colorStop = '#8fc0da';
+                }
+                document.getElementById('throttle-value').textContent = data.throttle.toFixed(1) + ' %';
+                prev_throttle = data.throttle;
+            }
+            
+            // ウィンカー・ヘッドライト等の更新
+            updateTurnSignals(data);
+            
+            // ギアの更新
+            updateGear(data.gear);
+
+            // コントロールの更新
+            updateControl(data.control);
+            
+       	    // バッテリー残量の更新
+            updateBattery(data.battery);
+
+            // ステアリングモードの更新
+            updateSteerMode(data.steer_mode);
+
+            // タイヤ角の更新
+            updateTireAngles(data);
+            
+            // 制限速度の更新
+            if (data.limit != prev_limit) {
+                document.getElementById('speed_limit_value').textContent = data.limit.toFixed(0);
+                prev_limit = data.limit;
+            }
+        }
+        
+        // 接続状態の更新
+        socket.on('connect', function() {
+            console.log('Connected to server');
+            connectionStatus.textContent = 'Connected';
+            connectionStatus.style.color = '#4CAF50';
+            // 接続時に最初のデータ更新をリクエスト
+            requestUpdate();
+        });
+
+        socket.on('disconnect', function() {
+            console.log('Disconnected from server');
+            connectionStatus.textContent = 'Disconnected - Retrying...';
+            connectionStatus.style.color = '#FF5722';
+        });
+        
+        // エラーイベント
+        socket.on('connect_error', function(error) {
+            console.log('Connection error:', error);
+            connectionStatus.textContent = 'Connection Error';
+            connectionStatus.classList.remove('connected');
+            connectionStatus.classList.add('disconnected');
+        });
+        
+        // 初期データ要求
+        socket.on('connect', function() {
+            socket.emit('request_update');
+        });
+
+        const toggleButton = document.getElementById('info-toggle');
+        const steeringPanel = document.getElementById('steering-angle-panel');
+        const modePanel = document.getElementById('steer-mode-panel');
+        const reversePanel = document.getElementById('reverse-panel');
+
+        toggleButton.addEventListener('click', () => {
+            info ++;
+            if (info > 2) {
+                info = 0;
+            }
+            changeInfo();
+        });
+
+        // リアカメラ
+        function changeInfo() {
+            const rearCamera = document.getElementById('rear-camera-feed');
+            switch (info) {
+                case 0:
+                    steeringPanel.classList.remove('hidden');
+                    steeringPanel.classList.add('visible');
+                    modePanel.classList.remove('visible');
+                    modePanel.classList.add('hidden');
+                    reversePanel.classList.remove('visible');
+                    reversePanel.classList.add('hidden');
+                    // カメラをオフにする
+                    if (rearCamera) {
+                        rearCamera.src = '';
+                    }
+                    break;
+                case 1:                        
+                    steeringPanel.classList.remove('visible');
+                    steeringPanel.classList.add('hidden');
+                    modePanel.classList.remove('hidden');
+                    modePanel.classList.add('visible');
+                    reversePanel.classList.remove('visible');
+                    reversePanel.classList.add('hidden');
+                    // カメラをオフにする
+                    if (rearCamera) {
+                        rearCamera.src = '';
+                    }
+                    break;
+                case 2:
+                    steeringPanel.classList.remove('visible');
+                    steeringPanel.classList.add('hidden');
+                    modePanel.classList.remove('visible');
+                    modePanel.classList.add('hidden');
+                    reversePanel.classList.remove('hidden');
+                    reversePanel.classList.add('visible');
+                    
+                    if (rearCamera) {
+                        createNewCameraElement();
+                    }
+                    break;
+            }
+        }
+
+        // 新しいカメラ要素を作成して置き換え
+        function createNewCameraElement() {
+            const container = document.getElementById('reverse-panel');
+            // 既存のカメラ要素を削除
+            const oldCamera = document.getElementById('rear-camera-feed');
+            if (oldCamera) {
+                oldCamera.remove();
+            }
+            
+            // 新しいカメラ要素を作成
+            const newCamera = document.createElement('img');
+            newCamera.id = 'rear-camera-feed';
+            newCamera.classList.add('camera-feed');
+            // キャッシュ防止のためにタイムスタンプ付きURLを設定
+            const timestamp = new Date().getTime();
+            newCamera.src = `/rear_camera_feed?t=${timestamp}`;
+            newCamera.alt = 'Rear Camera';
+            
+            // スタイルを適用
+            newCamera.style.width = '500px';
+            newCamera.style.height = '515px';
+            newCamera.style.marginTop = '-15px';
+            newCamera.style.borderRadius = '50%';
+            
+            // コンテナに追加
+            container.appendChild(newCamera);
+        }
+
+    </script>
+</body>
+</html>
