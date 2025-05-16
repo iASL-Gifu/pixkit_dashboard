@@ -75,7 +75,7 @@ cd ~/ros2_ws/src
 git clone https://github.com/pixmoving-moveit/pix_driver.git
 
 # 本リポジトリを追加
-git clone https://github.com/sakunaka39/pixkit_dashboard.git
+git clone https://github.com/iASL-Gifu/pixkit_dashboard.git
 
 cd ~/ros2_ws
 
