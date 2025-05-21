@@ -18,7 +18,7 @@ setup(
     maintainer='sakunaka39',
     maintainer_email='sakunaka.iasl@gmail.com',
     description='PIXkit3.0 dashboard display',
-    license='Apache License 2.0',
+    license='Apache-2.0',
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
