@@ -21,26 +21,41 @@ import signal
 import sys
 import os
 
+# ブラウザ指定チェック
+if len(sys.argv) != 2 or sys.argv[1] not in ["chrome", "firefox"]:
+    print("引数 chrome または firefox を指定して下さい.")
+    sys.exit(1)
+
+browser = sys.argv[1]
+
 # Flaskサーバー起動
 server_process = subprocess.Popen(["python3", "pixkit_dashboard.py"])
 
 # Flask起動まで待機（必要に応じて調整）
 time.sleep(5)
 
-# Chrome起動（フルスクリーン＆ディスプレイ2）
-chrome_process = subprocess.Popen([
-    "google-chrome",
-    "http://localhost:5001",
-    "--new-window",
-    "--kiosk",
-    "--noerrdialogs",
-    "--disable-session-crashed-bubble",
-    "--window-position=-1920,0",  # ディスプレイ2（左側）
-    "--window-size=1920,1080",
-])
+# ブラウザ起動（kioskモード＆ディスプレイ2）
+if browser == "chrome":
+    browser_process = subprocess.Popen([
+        "google-chrome",
+        "http://localhost:5001",
+        "--new-window",
+        "--kiosk",
+        "--noerrdialogs",
+        "--disable-session-crashed-bubble",
+        "--window-position=-1920,0",
+        "--window-size=1920,1080",
+    ])
+elif browser == "firefox":
+    browser_process = subprocess.Popen([
+        "firefox",
+        "--new-window",
+        "http://localhost:5001",
+        "--kiosk"
+    ])
 
 try:
-    print("ダッシュボード起動中。Ctrl+Cで終了します。")
+    print(f"{browser} にてダッシュボード起動中。Ctrl+Cで終了します。")
     while True:
         time.sleep(1)
 
@@ -56,11 +71,16 @@ finally:
         except subprocess.TimeoutExpired:
             server_process.kill()
 
-    # Chromeを強制終了（特定URLに絞る）
+    # ブラウザを強制終了
+    if browser == "chrome":
+        kill_cmd = ["pkill", "-f", "chrome.*localhost:5001"]
+    elif browser == "firefox":
+        kill_cmd = ["pkill", "-f", "firefox.*localhost:5001"]
+
     try:
-        subprocess.run(["pkill", "-f", "chrome.*localhost:5001"], check=True)
+        subprocess.run(kill_cmd, check=True)
     except subprocess.CalledProcessError:
-        pass  # プロセスがすでに終了している場合など
+        pass  # すでに終了している場合など
 
     print("すべて終了しました。")
     sys.exit(0)

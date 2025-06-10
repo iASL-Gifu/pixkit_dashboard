@@ -34,7 +34,8 @@ PIX Moving社の自動運転EV **PIXKIT3.0** の車両情報（速度・アク�
 - PIXKIT 3.0
 - Ubuntu 22.04
 - ROS 2 Humble
-- Google Chrome
+- Autoware Universe
+- Firefox / Google Chrome
 - メーター表示用モニター (1920×1080)  
 - Webカメラ (バックカメラ映像用)
 
@@ -60,7 +61,7 @@ ROS2トピック・Webカメラ画像を取得して情報をWebSocketサーバ�
 ### index.html
 Socket.IO でリアルタイムに更新しながらメーターを描画する
 ### run_dashboard.py
-自動で pixkit_dashboard.py 実行後に Google Chrome で UIページをメーター用モニターに全画面表示を行う
+自動で pixkit_dashboard.py 実行とブラウザでのUIページのモニター全画面表示を行う
 
 ---
 
@@ -106,7 +107,7 @@ source install/setup.bash
 ```bash
 cd ~/ros2_ws/src/pixkit_dashboard/pixkit_dashboard
 
-ros2 run python run_dashboard.py
+ros2 run python run_dashboard.py firefox
 ```
 
 ### 5. 終了
@@ -136,6 +137,50 @@ ros2 run python pixkit_dashboard.py
 
 
 ![画面](doc/screen2.png)
+
+---
+
+## ⚙ オプション設定とカスタマイズ
+
+### 🔧 自動起動設定
+
+`launch_meter.sh` の自動起動登録によりPC起動時に自動的にメーターを起動させることができます。  
+(注意) Autoware起動時の重複を避けるため、Autoware内部のPIXドライバー起動処理を無効化する手順を含みます。
+
+ 1. Ubuntuのアプリ一覧から`自動起動するアプリケーション`を起動する。  
+![手順1](doc/launch1.png)
+2. `追加`を選択する。  
+![手順2](doc/launch2.png)
+3. `コマンド`欄に `launch_meter.sh` のパスを入力して追加する。  
+（例：`/home/user/ros2_ws/src/pixkit_dashboard/launch_meter.sh` ）  
+![手順3](doc/launch3.png)
+4. Autowareディレクトリ内の `/autoware/src/universe/autoware.universe/launch/tier4_vehicle_launch/launch/` にある `vehicle.launch.xml` を編集し、`vehicle interface`部 の `<group>`要素 をコメントアウトで無効化します。
+
+    ```xml
+    <!-- vehicle interface -->
+    <!--
+      <group if="$(var launch_vehicle_interface)">
+        <include file="$(var vehicle_launch_pkg)/launch/vehicle_interface.launch.xml">
+          <arg name="vehicle_id" value="$(var vehicle_id)"/>
+          <arg name="initial_engage_state" value="$(var initial_engage_state)"/>
+        </include>
+      </group>
+    -->
+    ```
+    (ここで無効化した `vehicle_interface.launch.xml` の実行を、自動起動設定した `launch_meter.sh` 内で行っている。)
+5. PCを再起動して自動的にメーターが起動することを確認する。
+
+### 🔧 起動ブラウザ選択
+
+実行時のコマンドライン引数によりメーターUIを表示させるブラウザを選択することができます。
+
+```bash
+# Firefox で起動する場合
+ros2 run python run_dashboard.py firefox
+
+# Google Chrome で起動する場合
+ros2 run python run_dashboard.py chrome
+```
 
 ---
 

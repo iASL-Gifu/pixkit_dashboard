@@ -167,7 +167,13 @@ def initialize_camera():
         
         if not camera.isOpened():
             print("Failed to open camera 0. Trying alternative...")
-            camera = cv2.VideoCapture(2)  # 別のデバイス番号を試す
+            camera = cv2.VideoCapture(1)  # 別のデバイス番号を試す
+            if not camera.isOpened():
+                print("Failed to open camera 1. Trying alternative...")
+                camera = cv2.VideoCapture(2)  # 別のデバイス番号を試す
+                if not camera.isOpened():
+                    print("Failed to open camera 2. Trying alternative...")
+                    camera = cv2.VideoCapture(3)  # 別のデバイス番号を試す
         
         if camera.isOpened():
             # カメラ設定
