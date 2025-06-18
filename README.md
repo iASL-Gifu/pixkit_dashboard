@@ -3,6 +3,7 @@
 PIX Moving社の自動運転EV **PIXKIT3.0** の車両情報（速度・アクセル・ランプ点灯など）をリアルタイムに可視化する**メータープログラム**です。車両とAutowareとの間でやり取りされるROS2トピックから各種情報を取得して表示しています。
 
 ![画面](doc/screen.png)
+[デモ動画はこちら](https://drive.google.com/file/d/1hoLR6JWg3jC0HeK8_00Ni8R3ZqDSBgej/view?usp=drive_link)
 
 ---
 
