@@ -225,6 +225,9 @@ def gen_frames():
                 
             # フレームが取得できたら画像処理
             frame = cv2.resize(frame, (640, 480))
+
+            # 左右反転の処理
+            frame = cv2.flip(frame, 1)
             
             # JPEG圧縮して返す
             ret, buffer = cv2.imencode('.jpg', frame, [cv2.IMWRITE_JPEG_QUALITY, 80])
